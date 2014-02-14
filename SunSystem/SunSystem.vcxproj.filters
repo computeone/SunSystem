@@ -21,10 +21,19 @@
     <ClInclude Include="Ellipsoid.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="vertexBuffer.h">
+    <ClInclude Include="LoadShader.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="LoadShader.h">
+    <ClInclude Include="Util.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="RotateEllipsoid.vp">
+      <Filter>资源文件</Filter>
+    </ClInclude>
+    <ClInclude Include="RotateEllipsoid.fp">
+      <Filter>资源文件</Filter>
+    </ClInclude>
+    <ClInclude Include="GLVertexBuffer.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
@@ -35,11 +44,25 @@
     <ClCompile Include="Ellipsoid.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="vertexBuffer.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="LoadShader.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="SunSystem.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Util.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="GLVertexBuffer.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Identity.vp">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="Identity.fp">
+      <Filter>资源文件</Filter>
+    </None>
   </ItemGroup>
 </Project>

@@ -1,5 +1,6 @@
 #include <GLTools.h>
 #include <map>
+#include "Util.h"
 using namespace std;
 class LoadShader{
 
@@ -8,9 +9,8 @@ private:
 	GLuint FragmentShader;
 	GLuint program;
 public:
-	LoadShader(GLuint program);
-	boolean loadVertexShader(GLuint vertexshader,const char* filename);
-	boolean loadFragmentShader(GLuint fragmentshader,const char*  filename);
-	boolean createShader(map<GLuint, const GLchar*> attributes);
+	LoadShader();
+	boolean loadShaderPair(const char* szVertexProgFileName, const char* szFragProgFileName);
+	GLuint createShader(map<GLuint, const GLchar*> attributes);
 	~LoadShader();
 };

@@ -82,13 +82,22 @@
     <ClInclude Include="Eclipse.h" />
     <ClInclude Include="Ellipsoid.h" />
     <ClInclude Include="LoadShader.h" />
-    <ClInclude Include="vertexBuffer.h" />
+    <ClInclude Include="RotateEllipsoid.vp" />
+    <ClInclude Include="RotateEllipsoid.fp" />
+    <ClInclude Include="Util.h" />
+    <ClInclude Include="GLVertexBuffer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Eclipse.cpp" />
     <ClCompile Include="Ellipsoid.cpp" />
     <ClCompile Include="LoadShader.cpp" />
-    <ClCompile Include="vertexBuffer.cpp" />
+    <ClCompile Include="SunSystem.cpp" />
+    <ClCompile Include="Util.cpp" />
+    <ClCompile Include="GLVertexBuffer.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Identity.fp" />
+    <None Include="Identity.vp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
