@@ -12,7 +12,9 @@ using namespace std;
 #define Soil       5
 #define SkyKing    6
 #define SeaKing    7
-#define EclipseSlice    100
+#define EclipseSlice       100
+#define EllipsoidSlice     100
+#define EllipsoidStack     100
 
 //Ö±¾¶
 const float Radius[] = {

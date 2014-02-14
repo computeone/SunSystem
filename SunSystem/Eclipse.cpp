@@ -40,7 +40,4 @@ void Eclipse::makeEclipse(GLfloat* vVertexs, GLfloat* vNormals, GLfloat* vTextur
 		}	
 	}
 }
-int Eclipse::getCount(){
-	return pointCount;
-}
 Eclipse::~Eclipse(){}

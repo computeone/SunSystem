@@ -12,7 +12,7 @@
 #include <GLFrustum.h>
 #include <GLMatrixStack.h>
 #include <GLGeometryTransform.h>
-
+using namespace std;
 
 GLFrame				 viewFrame;
 GLFrustum			 frustum;
@@ -21,28 +21,24 @@ GLMatrixStack        projectionMatrix;
 GLGeometryTransform  transformPipeline;
 
 GLuint				 eclipseProgram;
+GLuint               ellipsoidProgram;
 GLuint               eclipseMvpMatrix;
+GLuint               ellipsoidMvpMatrix;
 GLuint				 uniformColors;
+GLuint				 ellipsoidCubeTextures[1];
 
 Eclipse              eclipse[8];
 GLVertexBuffer       eclipseBuffer[8];
 LoadShader           eclipseShader;
 GLfloat				 eclipseVertexs[8][EclipseSlice * 6];
 
+GLVertexBuffer       ellipsoidBuffer[8];
+LoadShader           ellipsoidShader;
+GLfloat              ellipsoidVertexs[8][EllipsoidSlice*EllipsoidStack * 2 * 3 * 3];
+GLfloat              ellipsoidNormals[8][EllipsoidSlice*EllipsoidStack * 2 * 3 * 3];
+GLfloat				 ellipsoidTextures[8][EllipsoidSlice*EllipsoidStack * 2 * 3 * 2];
 
-//const int eclipse_iSlice = 1000;
-//const int eclipse_point_num = eclipse_iSlice * 2;
-//GLfloat	 eclipse_vVerts[eclipse_point_num * 3];
-//GLfloat	 eclipse_vNormal[eclipse_point_num * 3];
-//GLfloat	 eclipse_vTexture[eclipse_point_num * 2];
-//
-//const int sphere_iSlice = 50;
-//const int sphere_iStack = 50;
-//const int sphere_point_num = sphere_iSlice*sphere_iStack * 2 * 3;
-//GLfloat   sphere_vVerts[sphere_point_num*3];
-//GLfloat   sphere_vNormal[sphere_point_num*3];
-//GLfloat   sphere_vTexture[sphere_point_num * 2];
-//
+
 //Eclipse eclipse;
 //LoadShader eclipse_shader;
 //LoadShader sphere_shader;
@@ -68,8 +64,35 @@ void SetupRC(){
 	glEnable(GL_POLYGON_SMOOTH);
 	glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
 
+	glCullFace(GL_BACK);
+	glFrontFace(GL_CCW);
+	glEnable(GL_DEPTH_TEST);
+
 	viewFrame.MoveForward(4.0f);
 
+
+	//加载椭球体天体纹理
+	for (int i = 0; i < 1; i++){
+		GLbyte *pBytes;
+		GLint  iWidth, iHeight, iComponents;
+		GLenum eFormat;
+		glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+
+		glGenTextures(1, &ellipsoidCubeTextures[0]);
+		glBindTexture(GL_TEXTURE_2D, ellipsoidCubeTextures[0]);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+		pBytes = gltReadTGABits("earth.tga", &iWidth, &iHeight, &iComponents, &eFormat);
+		glTexImage2D(GL_TEXTURE_2D, 0, iComponents, iWidth, iHeight, 0, eFormat, GL_UNSIGNED_BYTE,
+			pBytes);
+		free(pBytes);
+		glGenerateMipmap(GL_TEXTURE_2D);
+	}
+	
 
 	//绘制椭圆
 	for (int i = 0; i < 8; i++){
@@ -79,7 +102,7 @@ void SetupRC(){
 
 	//加载绘制椭圆的着色器
 	eclipseShader.loadShaderPair("Identity.vp", "Identity.fp");
-	std::map<GLuint, const char*> eclipseMap;
+	map<GLuint, const char*> eclipseMap;
 	eclipseMap[GL_VERTEX_ATTRIBUTE] = "vVertex";
 	eclipseProgram = eclipseShader.createShader(eclipseMap);
 	
@@ -88,25 +111,30 @@ void SetupRC(){
 	eclipseMvpMatrix = glGetUniformLocation(eclipseProgram,"mvpMatrix");
 	uniformColors = glGetUniformLocation(eclipseProgram, "color");
 
-	////绘制椭球体
-	//
-	//makeSphere(sphere_vVerts, sphere_vNormal, sphere_vTexture, 0.3, sphere_iSlice, sphere_iStack);
-	//sphere_buffer.createBuffer(sphere_vVerts, sphere_vNormal, sphere_vTexture, sphere_point_num);
-	//
-	////创建着色器
-	//sphere_shader.loadShaderPair("RotateEllipsoid.vp", "RotateEllipsoid.fp");
-	//sphere_map[GL_VERTEX_ATTRIBUTE] = "vVertex";
-	//sphere_map[GL_NORMAL_ATTRIBUTE] = "vNormal";
-	//sphere_map[GL_TEXTURE_ATTRIBUTE] = "vTexture";
-	//sphere_program = sphere_shader.createShader(sphere_map);
-	//glUseProgram(sphere_program);
-	//sphere_mvpMatrix = glGetUniformLocation(sphere_program, "mvpMatrix");
-	//sphere_colors = glGetUniformLocation(sphere_program, "color");
+	//绘制椭球体
+	for (int i = 0; i < 8; i++){
+		makeSphere(ellipsoidVertexs[i], ellipsoidNormals[i], ellipsoidTextures[i],
+			Radius[i]/0.0000001,EllipsoidSlice,EllipsoidStack);
+		ellipsoidBuffer[i].createBuffer(ellipsoidVertexs[i], ellipsoidNormals[i],
+			ellipsoidTextures[i], EllipsoidSlice*EllipsoidStack * 2 * 3);
+	}
 
+
+	//创建着色器
+	ellipsoidShader.loadShaderPair("RotateEllisoid.vp", "RotateEllisoid.fp");
+	map<GLuint, const char*> ellipsoidMap;
+	ellipsoidMap[GL_VERTEX_ATTRIBUTE] = "vVertex";
+	ellipsoidMap[GL_NORMAL_ATTRIBUTE] = "vNormal";
+	ellipsoidMap[GL_TEXTURE_ATTRIBUTE] = "vTexture";
+	ellipsoidProgram=ellipsoidShader.createShader(ellipsoidMap);
+	
+	ellipsoidMvpMatrix = glGetUniformLocation(ellipsoidProgram, "mvpMatrix");
+	
 }
 void RenderScene(){
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 	
+	//渲染椭圆轨道
 	modelviewMatrix.PushMatrix(viewFrame);
 
 	glUseProgram(eclipseProgram);
@@ -117,6 +145,7 @@ void RenderScene(){
 	M3DMatrix44f mModelViewProjection;
 	glUniform4fv(uniformColors, 1, Color);
 	for (int i = 0; i < 8; i++){
+		//旋转到轨道倾斜角
 		M3DMatrix44f mRotate;
 		m3dRotationMatrix44(mRotate, m3dDegToRad(OrbitAngle[i]), 1.0, 0.0, 0.0);
 		m3dMatrixMultiply44(mModelViewProjection, transformPipeline.GetModelViewProjectionMatrix(),mRotate);
@@ -124,6 +153,11 @@ void RenderScene(){
 		eclipseBuffer[i].drawBuffer(GL_LINES);
 	}
 	modelviewMatrix.PopMatrix();
+
+	// 渲染椭球体天体
+	//modelviewMatrix.PushMatrix(viewFrame);
+	//glUseProgram(ellipsoidProgram);
+
 
 	glutSwapBuffers();
 	
