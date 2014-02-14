@@ -1,9 +1,15 @@
+
+
 #version 130
-
 in vec4 vVertex;
+in vec3 vNormal;
+in vec2 vTexture;
+
 uniform mat4 mvpMatrix;
-
+uniform vec4 color;
+smooth out vec2 vVaryingTexCoords;
 void main(void){
-	gl_Position=mvpMatrix*vVertex;
 
+	vVaryingTexCoords=vTexture;
+	gl_Position=mvpMatrix*vVertex;
 }

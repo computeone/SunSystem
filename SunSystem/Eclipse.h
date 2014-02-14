@@ -9,6 +9,6 @@ public:
 	Eclipse();
 	void makeEclipse(GLfloat* vVertexs,GLfloat* vNormals,GLfloat* vTexture,
 		GLfloat a,GLfloat b,int iSlice);
-	int getCout();
+	int getCount();
 	~Eclipse();
 };

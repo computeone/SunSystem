@@ -1,7 +1,10 @@
-#version 130
 
-uniform vec4 color;
+#version 130
+uniform sampler2D colorMap;
+smooth in vec2 vVaryingTexCoords;
 
 void main(void){
-	gl_FragColor = color;
+	
+	//ÌùÍ¼
+	gl_FragColor=texture(colorMap,vVaryingTexCoords.st);
 }
