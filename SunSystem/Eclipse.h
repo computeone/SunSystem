@@ -1,5 +1,4 @@
 #include <GLTools.h>
-#include "Util.h"
 using namespace std;
 
 class Eclipse{

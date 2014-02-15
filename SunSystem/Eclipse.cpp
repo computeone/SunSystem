@@ -1,5 +1,5 @@
 #include "Eclipse.h"
-
+#include "Util.h"
 
 Eclipse::Eclipse(){}
 void Eclipse::makeEclipse(GLfloat* vVertexs, GLfloat* vNormals, GLfloat* vTextures,

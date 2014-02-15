@@ -25,7 +25,7 @@ GLuint               ellipsoidProgram;
 GLuint               eclipseMvpMatrix;
 GLuint               ellipsoidMvpMatrix;
 GLuint				 uniformColors;
-GLuint				 ellipsoidCubeTextures[1];
+GLuint				 ellipsoidCubeTextures[9];
 
 Eclipse              eclipse[8];
 GLVertexBuffer       eclipseBuffer[8];
@@ -39,20 +39,21 @@ GLfloat              ellipsoidNormals[8][EllipsoidSlice*EllipsoidStack * 2 * 3 *
 GLfloat				 ellipsoidTextures[8][EllipsoidSlice*EllipsoidStack * 2 * 3 * 2];
 
 
-//Eclipse eclipse;
-//LoadShader eclipse_shader;
-//LoadShader sphere_shader;
-//
-//const GLfloat dS = pi*1.5*0.8/360.0;
-//GLfloat  ganglar = 0;
-//GLfloat position[] = {
-//	1.5, 0.0, 0.0
-//};
-//int a = 1;
-//GLVertexBuffer eclipse_buffer;
-//GLVertexBuffer sphere_buffer;
-//std::map<GLuint, const GLchar*> eclipse_map;
-//std::map<GLuint, const GLchar*> sphere_map;
+GLVertexBuffer      SunEllipsoidBuffer;
+GLfloat             SunEllipsoidVertexs[EllipsoidSlice*EllipsoidStack * 2 * 3 * 3];
+GLfloat             SunEllipsoidNormals[EllipsoidSlice*EllipsoidStack * 2 * 3 * 3];
+GLfloat             SunEllipsoidTextures[EllipsoidSlice*EllipsoidStack * 2 * 3 * 3];
+
+const char* textures[9] = {
+	"water.tga", "gold.tga", "earth.tga",
+	"fire.tga", "tree.tga", "soil.tga",
+	"skyking.tga", "seaking.tga", "sun.tga"
+};
+
+GLfloat  Currentposition[8][3];
+GLfloat  CurrentAnglar[8];
+GLfloat  CurrentRotateAxis[8][3];
+
 void SetupRC(){
 	//glClearColor(0.0f, 0.5f, 0.0f, 1.0f);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -68,25 +69,36 @@ void SetupRC(){
 	glFrontFace(GL_CCW);
 	glEnable(GL_DEPTH_TEST);
 
-	viewFrame.MoveForward(4.0f);
+	viewFrame.MoveForward(100.0f);
+
+	//初始化天体参数
+	for (int i = 0; i < 8; i++){
+		Currentposition[i][0] = LAxis[i]*AU*DistanceZoom;
+		Currentposition[i][1] = 0.0f;
+		Currentposition[i][2] = 0.0f;
+
+		CurrentRotateAxis[i][0] = 0.0f;
+		CurrentRotateAxis[i][1] = 0.0f;
+		CurrentRotateAxis[i][2] = RotateDirection[i];
+	}
 
 
 	//加载椭球体天体纹理
-	for (int i = 0; i < 1; i++){
+	for (int i = 0; i < 9; i++){
 		GLbyte *pBytes;
 		GLint  iWidth, iHeight, iComponents;
 		GLenum eFormat;
 		glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
 
-		glGenTextures(1, &ellipsoidCubeTextures[0]);
-		glBindTexture(GL_TEXTURE_2D, ellipsoidCubeTextures[0]);
+		glGenTextures(1, &ellipsoidCubeTextures[i]);
+		glBindTexture(GL_TEXTURE_2D, ellipsoidCubeTextures[i]);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-		pBytes = gltReadTGABits("earth.tga", &iWidth, &iHeight, &iComponents, &eFormat);
+		pBytes = gltReadTGABits(textures[i], &iWidth, &iHeight, &iComponents, &eFormat);
 		glTexImage2D(GL_TEXTURE_2D, 0, iComponents, iWidth, iHeight, 0, eFormat, GL_UNSIGNED_BYTE,
 			pBytes);
 		free(pBytes);
@@ -96,7 +108,7 @@ void SetupRC(){
 
 	//绘制椭圆
 	for (int i = 0; i < 8; i++){
-		eclipse[i].makeEclipse(eclipseVertexs[i], NULL, NULL, LAxis[i], SAxis[i], EclipseSlice);
+		eclipse[i].makeEclipse(eclipseVertexs[i], NULL, NULL, LAxis[i] * AU * DistanceZoom, SAxis[i] * AU * DistanceZoom, EclipseSlice);
 		eclipseBuffer[i].createBuffer(eclipseVertexs[i], NULL, NULL, EclipseSlice * 2);
 	}
 
@@ -111,17 +123,25 @@ void SetupRC(){
 	eclipseMvpMatrix = glGetUniformLocation(eclipseProgram,"mvpMatrix");
 	uniformColors = glGetUniformLocation(eclipseProgram, "color");
 
+
+
 	//绘制椭球体
 	for (int i = 0; i < 8; i++){
 		makeSphere(ellipsoidVertexs[i], ellipsoidNormals[i], ellipsoidTextures[i],
-			Radius[i]/0.0000001,EllipsoidSlice,EllipsoidStack);
+			Radius[i] * RadiusZoom, EllipsoidSlice, EllipsoidStack);
 		ellipsoidBuffer[i].createBuffer(ellipsoidVertexs[i], ellipsoidNormals[i],
 			ellipsoidTextures[i], EllipsoidSlice*EllipsoidStack * 2 * 3);
 	}
+	
+	//绘制太阳
+	makeSphere(SunEllipsoidVertexs, SunEllipsoidNormals, SunEllipsoidTextures,
+		SunRadius*SunRadiusZoom, EllipsoidSlice,EllipsoidStack);
+	SunEllipsoidBuffer.createBuffer(SunEllipsoidVertexs, SunEllipsoidNormals,
+		SunEllipsoidTextures, EllipsoidSlice*EllipsoidStack * 2 * 3);
 
 
 	//创建着色器
-	ellipsoidShader.loadShaderPair("RotateEllisoid.vp", "RotateEllisoid.fp");
+	ellipsoidShader.loadShaderPair("RotateEllipsoid.vp", "RotateEllipsoid.fp");
 	map<GLuint, const char*> ellipsoidMap;
 	ellipsoidMap[GL_VERTEX_ATTRIBUTE] = "vVertex";
 	ellipsoidMap[GL_NORMAL_ATTRIBUTE] = "vNormal";
@@ -129,7 +149,6 @@ void SetupRC(){
 	ellipsoidProgram=ellipsoidShader.createShader(ellipsoidMap);
 	
 	ellipsoidMvpMatrix = glGetUniformLocation(ellipsoidProgram, "mvpMatrix");
-	
 }
 void RenderScene(){
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
@@ -142,49 +161,94 @@ void RenderScene(){
 		0.6f,0.3f,1.0f,1.0f
 	};
 	
-	M3DMatrix44f mModelViewProjection;
+	M3DMatrix44f eclipseModelViewProjection;
 	glUniform4fv(uniformColors, 1, Color);
 	for (int i = 0; i < 8; i++){
 		//旋转到轨道倾斜角
 		M3DMatrix44f mRotate;
 		m3dRotationMatrix44(mRotate, m3dDegToRad(OrbitAngle[i]), 1.0, 0.0, 0.0);
-		m3dMatrixMultiply44(mModelViewProjection, transformPipeline.GetModelViewProjectionMatrix(),mRotate);
-		glUniformMatrix4fv(eclipseMvpMatrix, 1, GL_FALSE, mModelViewProjection);
+		m3dMatrixMultiply44(eclipseModelViewProjection, transformPipeline.GetModelViewProjectionMatrix(),mRotate);
+		glUniformMatrix4fv(eclipseMvpMatrix, 1, GL_FALSE, eclipseModelViewProjection);
 		eclipseBuffer[i].drawBuffer(GL_LINES);
 	}
+
 	modelviewMatrix.PopMatrix();
 
 	// 渲染椭球体天体
-	//modelviewMatrix.PushMatrix(viewFrame);
-	//glUseProgram(ellipsoidProgram);
-
-
-	glutSwapBuffers();
-	
-	/*glUseProgram(sphere_program);
-	static CStopWatch rotTimer;
-	float second=rotTimer.GetElapsedSeconds();
-	M3DMatrix44f mTranslate,mRotate, mModelView,mModelViewProjection;
-	
-	GLfloat d = sqrt(pow(position[0], 2) + pow(position[1], 2));
-	GLfloat anglar = std::asinf(dS /d);
-	ganglar += anglar;
-	position[0] = 1.5*cos(ganglar);
-	position[1] = 0.8*sin(ganglar);
-	m3dRotationMatrix44(mRotate, m3dDegToRad(10), position[0], position[1], 0.0f);
-	m3dTranslationMatrix44(mTranslate, position[0],position[1],position[2]);
 	modelviewMatrix.PushMatrix(viewFrame);
-	m3dMatrixMultiply44(mModelView, mTranslate, mRotate);
-	m3dMatrixMultiply44(mModelViewProjection, transformPipeline.GetModelViewProjectionMatrix(), mModelView);
-	glUniformMatrix4fv(sphere_mvpMatrix, 1, GL_FALSE, mModelViewProjection);
-	glUniform4fv(sphere_colors,1, sphere_color);
-	sphere_buffer.drawBuffer(GL_TRIANGLES);
+	glUseProgram(ellipsoidProgram);
+
+
+	
+	M3DMatrix44f ellipsoidModelViewProjection;
+
+	for (int i = 0; i < 8; i++){
+
+		static CStopWatch rotTimer;
+		float time = rotTimer.GetElapsedSeconds();
+		
+		M3DMatrix44f  mModelView,mTranslate,Rotate,RevolutionRoate,AnglarRoate;
+		//计算天体的自转
+		m3dRotationMatrix44(Rotate, m3dDegToRad(360.0 / (RotatePeriod[i])*time), 0.0, 0.0,
+			RotateDirection[i]);
+		//计算自转倾斜角旋转
+		m3dRotationMatrix44(AnglarRoate, m3dDegToRad(RotateAngle[i]), 1.0, 0.0, 0.0);
+
+		//计算当前天体位置到原点的距离
+		GLfloat  d = sqrt(pow(Currentposition[i][0], 2) + pow(Currentposition[i][1], 2));
+
+		//计算当前天体的角度
+		GLfloat  anglar = asinf(2.0*dS[i] /pow(d,2));
+		CurrentAnglar[i] += anglar;
+
+		//计算天体当前位置
+		Currentposition[i][0] = LAxis[i] *AU*DistanceZoom* cos(CurrentAnglar[i]);
+		Currentposition[i][1] = SAxis[i] *AU*DistanceZoom* sin(CurrentAnglar[i]);
+
+		m3dTranslationMatrix44(mTranslate, Currentposition[i][0], Currentposition[i][1], 0.0f);
+
+		//轨道倾斜角旋转
+		m3dRotationMatrix44(RevolutionRoate, m3dDegToRad(OrbitAngle[i]), 1.0f, 0.0f, 0.0f);
+
+		//所有变换矩阵相乘
+		M3DMatrix44f tempMatrix;
+		m3dMatrixMultiply44(mModelView, AnglarRoate, Rotate);
+		m3dMatrixMultiply44(tempMatrix, mTranslate,mModelView );
+		m3dMatrixMultiply44(mModelView, RevolutionRoate, tempMatrix);
+		m3dMatrixMultiply44(ellipsoidModelViewProjection ,transformPipeline.
+			GetModelViewProjectionMatrix(), mModelView);
+		glUniformMatrix4fv(ellipsoidMvpMatrix, 1, GL_FALSE, ellipsoidModelViewProjection);
+		glBindTexture(GL_TEXTURE_2D, ellipsoidCubeTextures[i]);
+		ellipsoidBuffer[i].drawBuffer(GL_TRIANGLES);
+	}
+	glUseProgram(ellipsoidProgram);
+
+	static CStopWatch rotTimer;
+	float time = rotTimer.GetElapsedSeconds();
+	//绘制太阳
+	M3DMatrix44f  mModelView, mModelViewProjection,Rotate, AnglarRoate;
+	//计算天体的自转
+	m3dRotationMatrix44(Rotate, m3dDegToRad(360.0 / (SunRoatePeriod)*time), 0.0, 0.0,
+		SunRotateDirection);
+	//计算自转倾斜角旋转
+	m3dRotationMatrix44(AnglarRoate, m3dDegToRad(SunRotateAnglar), 1.0, 0.0, 0.0);
+
+
+	m3dMatrixMultiply44(mModelView, AnglarRoate, Rotate);
+	m3dMatrixMultiply44(ellipsoidModelViewProjection, transformPipeline.GetModelViewProjectionMatrix(),
+		mModelView);
+	
+	glUniformMatrix4fv(ellipsoidMvpMatrix, 1, GL_FALSE, ellipsoidModelViewProjection);
+	glBindTexture(GL_TEXTURE_2D, ellipsoidCubeTextures[8]);
+	SunEllipsoidBuffer.drawBuffer(GL_TRIANGLES);
+
 	modelviewMatrix.PopMatrix();
-	glutSwapBuffers();*/
+		
+	glutSwapBuffers();
 }
 void ChangeSize(int w, int h){
 	glViewport(0, 0, w, h);
-	frustum.SetPerspective(35.0f, float(w) / float(h), 1.0f, 1000.0f);
+	frustum.SetPerspective(35.0f, float(w) / float(h), 1.0f, 10000.0f);
 	projectionMatrix.LoadMatrix(frustum.GetProjectionMatrix());
 	transformPipeline.SetMatrixStacks(modelviewMatrix, projectionMatrix);
 }
@@ -193,19 +257,19 @@ void SpecialKeys(int key, int x, int y){
 
 	if (key == GLUT_KEY_UP){
 		//viewFrame.RotateWorld(m3dDegToRad(-5.0), 1.0f, 0.0f, 0.0f);
-		viewFrame.MoveForward(-0.1f);
+		viewFrame.MoveForward(-1.0f);
 
 	}
 	if (key == GLUT_KEY_DOWN){
 		//viewFrame.RotateWorld(m3dDegToRad(5.0), 1.0f, 0.0f, 0.0f);
-		viewFrame.MoveForward(0.1f);
+		viewFrame.MoveForward(1.0f);
 	}
 	if (key == GLUT_KEY_LEFT){
-		viewFrame.RotateWorld(angular, 0.0f, 1.0f, 0.0f);
+		viewFrame.RotateLocal(angular, 0.0f, 1.0f, 0.0f);
 
 	}
 	if (key == GLUT_KEY_RIGHT){
-		viewFrame.RotateWorld(-angular, 0.0f, 1.0f, 0.0f);
+		viewFrame.RotateLocal(-angular, 0.0f, 1.0f, 0.0f);
 
 	}
 	glutPostRedisplay();
